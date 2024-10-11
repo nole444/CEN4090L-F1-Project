@@ -52,7 +52,7 @@ def main():
             'base_lap_time': 95.1,
             'degradation_rate': 0.10,
             'wear_limit': 15
-        }
+        },
         'c2': {
             'base_lap_time': 90,
             'degradation_rate': 0.08,
