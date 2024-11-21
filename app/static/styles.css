@@ -3,7 +3,7 @@
 /* Style for the background container */
 .home-background {
 
-    background-image: url('images/f1_background.jpg');
+    background-image: url('/static/images/f1_background.png');
     background-size: cover; /* Ensures the image covers the entire container */
     background-position: center;
     background-repeat: no-repeat;
