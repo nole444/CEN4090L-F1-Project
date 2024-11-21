@@ -1,0 +1,41 @@
+<!--This page will be the users account home page after logging into their account-->
+<!-- account.html -->
+
+{% extends 'base.html' %}
+
+{% block title %}Welcome - F1 Strategy Web App{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Welcome Message -->
+    <div class="jumbotron text-center">
+        <h1 class="display-4">Welcome, {{ current_user.username }}!</h1>
+        <p class="lead">Welcome to your account dashboard.</p>
+    </div>
+
+    <!-- Placeholder for Upcoming Races -->
+    <div class="mb-5">
+        <h2>Upcoming Races</h2>
+        <ul class="list-group">
+            <li class="list-group-item">No upcoming races available at the moment.</li>
+        </ul>
+    </div>
+
+    <!-- Placeholder for Racer Statistics -->
+    <div class="mb-5">
+        <h2>Racer Statistics</h2>
+        <ul class="list-group">
+            <li class="list-group-item">Racer statistics will be available soon.</li>
+        </ul>
+    </div>
+
+    <!-- User Stats Button -->
+
+
+    <!-- Placeholder for Achievement Badges -->
+    <div class="mb-5">
+        <h2>Your Achievement Badges</h2>
+        <p>Achievement badges will be displayed here once implemented.</p>
+    </div>
+</div>
+{% endblock %}
