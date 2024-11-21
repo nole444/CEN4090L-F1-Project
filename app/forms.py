@@ -7,6 +7,7 @@ from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Le
 from app.models import User
 from flask_login import current_user
 
+#The below function allows users to create an account on the F1 app
 class RegistrationForm(FlaskForm):
     username = StringField('Username', validators=[
         DataRequired(),
@@ -36,12 +37,9 @@ class RegistrationForm(FlaskForm):
         user = User.query.filter_by(email=email.data).first()
         if user:
             raise ValidationError('Email is already registered.')
-
+#below is the users login form
 class LoginForm(FlaskForm):
-    email = StringField('Email', validators=[
-        DataRequired(),
-        Email(message='Enter a valid email address.')
-    ])
+    email_or_username = StringField('Email or Username', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
     remember = BooleanField('Remember Me')
     submit = SubmitField('Login')
