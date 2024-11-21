@@ -1,10 +1,14 @@
 # routes.py
+#This file will contain the html routes using flask
 
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from .models import User
 from .forms import RegistrationForm, LoginForm
-from . import db
+from . import db, bcrypt
+import re
+
+
 
 main_bp = Blueprint('main_bp', __name__)
 
@@ -31,18 +35,27 @@ def register():
         return redirect(url_for('main_bp.login'))
     return render_template('register.html', form=form)
 
+
 @main_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('main_bp.dashboard'))
+        return redirect(url_for('main_bp.home'))
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data).first()
-        if user and user.check_password(form.password.data):
-            login_user(user)
-            return redirect(url_for('main_bp.dashboard'))
+        input_data = form.email_or_username.data
+        # Simple regex to check if input is an email
+        if re.match(r"[^@]+@[^@]+\.[^@]+", input_data):
+            user = User.query.filter_by(email=input_data).first()
         else:
-            flash('Invalid username or password.', 'danger')
+            user = User.query.filter_by(username=input_data).first()
+
+        if user and bcrypt.check_password_hash(user.password_hash, form.password.data):
+            login_user(user, remember=form.remember.data)
+            next_page = request.args.get('next')
+            flash('You have been logged in!', 'success')
+            return redirect(next_page) if next_page else redirect(url_for('main_bp.account'))
+        else:
+            flash('Login Unsuccessful. Please check your credentials.', 'danger')
     return render_template('login.html', form=form)
 
 @main_bp.route('/logout')
@@ -57,3 +70,20 @@ def logout():
 def dashboard():
     # Integrate with the F1 API to display race data
     return render_template('dashboard.html')
+
+@main_bp.route('/account')
+@login_required
+def account():
+    # Since badges and races aren't implemented yet we will pass empty lists for now
+    races = []  # Placeholder
+    racers = []  # Assuming you have a Racer model
+    badges = []  # Placeholder
+
+    return render_template('account.html', races=races, racers=racers, badges=badges)
+@main_bp.route('/user_stats')
+@login_required
+def user_stats():
+    # Fetch user-specific statistics
+    stats = {}  # Placeholder for user stats data
+    return render_template('user_stats.html', stats=stats)
+
