@@ -37,19 +37,43 @@
           </div>
         </form>
 
+
+        <script>
+          // Function to update the displayed time
+          function updateTime(timestamp) {
+            const date = new Date(timestamp * 1000);
+            // Format the date (example: 'YYYY-MM-DD HH:mm:ss')
+            const formattedDate = date.toISOString().replace("T", " ").substring(0, 19);
+
+            document.getElementById('selectedTime').innerText = formattedDate;
+          }
+
+          document.addEventListener("DOMContentLoaded", function () {
+            const slider = document.getElementById("raceRange");
+            updateTime(slider.value);
+          });
+        </script>
+
+
         {% if races_found %}
         <div>
           <h2>Result:</h2>
-          <p>{{ races_found }}</p>
+          <p>{{ races_found[0]['location'] }}</p>
         </div>
-        {% endif %}
 
         <form action="{{ url_for('main.get_data') }}" method="POST">
+
           <div class="form-group">
-            <label for="exampleInputEmail1">Date and time</label>
-            <input type="text" name="user_input" class="form-control" id="exampleInputEmail1"
-              aria-describedby="emailHelp" placeholder="Enter date and time">
+            <label for="customRange3" class="form-label">Select a point in the race</label>
+
+            <!-- Range Slider -->
+            <input type="range" name="user_input" class="form-range" min="{{ races_found[0]['start_timestamp'] }}"
+              max="{{ races_found[0]['end_timestamp'] }}" step="60" id="raceRange" oninput="updateTime(this.value)">
+
+            <!-- Display Selected Time -->
+            <p>Selected Time: <span id="selectedTime"></span></p>
           </div>
+
           <div class="form-group">
             <label for="exampleFormControlSelect2">Select a driver</label>
             <select multiple name="driver" class="form-control" id="exampleFormControlSelect2">
@@ -83,16 +107,41 @@
           </div>
           <button type="submit" class="btn btn-primary">Submit</button>
         </form>
+        {% endif %}
 
         {% if result %}
         <div class="bg-light">
+
+          <h2>Driver: {{ driver_selected }}</h2>
+          <div class="container mt-4">
+            <div class="row">
+              <table class="table table-striped">
+                <thead>
+                  <tr>
+                    <th scope="col">Position</th>
+                    <th scope="col">Driver</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Loop through positions and create a table row for each -->
+                  {% for position in positions %}
+                  <tr {% if position[1]==driver_selected %} class="table-primary" {% endif %}>
+                    <td><span class="fw-bold">{{ position[0] }}</span></td>
+                    <td>{{ position[1] }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           <h2>Result:</h2>
           <p>{{ result }}</p>
+
         </div>
         {% endif %}
 
       </div>
-
     </div>
   </div>
 

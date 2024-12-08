@@ -5,6 +5,35 @@ from urllib.request import urlopen
 import json
 from datetime import datetime, timedelta
 
+driver_dict = {
+    1: "Max Verstappen",
+    10: "Pierre Gasly",
+    11: "Sergio Pérez",
+    14: "Fernando Alonso",
+    16: "Charles Leclerc",
+    18: "Lance Stroll",
+    2: "Logan Sargeant",
+    20: "Kevin Magnussen",
+    22: "Yuki Tsunoda",
+    23: "Alexander Albon",
+    24: "Zhou Guanyu",
+    27: "Nico Hülkenberg",
+    3: "Daniel Ricciardo",
+    31: "Esteban Ocon",
+    37: "Isack Hadjar",
+    50: "Oliver Bearman",
+    4: "Lando Norris",
+    40: "Ayumu Iwasa",
+    44: "Lewis Hamilton",
+    43: "Franco Colapinto",
+    55: "Carlos Sainz",
+    61: "Jack Doohan",
+    63: "George Russell",
+    77: "Valtteri Bottas",
+    81: "Oscar Piastri",
+    97: "Robert Shwartzman"
+}
+
 
 def racefinder(date):
     response = urlopen('https://api.openf1.org/v1/sessions?date_start='+date)
@@ -13,6 +42,14 @@ def racefinder(date):
     results = []
 
     for i in range(len(data)):
+        date_start = datetime.strptime(
+            data[i]['date_start'], "%Y-%m-%dT%H:%M:%S+00:00")
+        date_end = datetime.strptime(
+            data[i]['date_end'], "%Y-%m-%dT%H:%M:%S+00:00")
+
+        # Convert to timestamps for the slider
+        data[i]['start_timestamp'] = int(date_start.timestamp())
+        data[i]['end_timestamp'] = int(date_end.timestamp())
         results.append(data[i])
 
     return results
@@ -33,6 +70,9 @@ def getcardata(driver_number, date):
 
     response = urlopen('https://api.openf1.org/v1/car_data?driver_number=' +
                        driver_number+'&date>='+formattedwindow+'&date<='+date)
+
+    print('https://api.openf1.org/v1/car_data?driver_number=' +
+          driver_number+'&date>='+formattedwindow+'&date<='+date)
 
     data = json.loads(response.read().decode('utf-8'))
 
@@ -85,9 +125,17 @@ def getmeetingdata(meeting_key):
     return data[0]
 
 
-def getsessiondata(session_key):
+def getsessiondata(date):
+    datewindowbegin = datetime.fromisoformat(date) - timedelta(hours=3)
+    formattedwindowbegin = datewindowbegin.strftime('%Y-%m-%dT%H:%M:%S.%f')
+    datewindowend = datetime.fromisoformat(date) + timedelta(hours=3)
+    formattedwindowend = datewindowend.strftime('%Y-%m-%dT%H:%M:%S.%f')
+
     response = urlopen(
-        'https://api.openf1.org/v1/sessions?session_key='+session_key)
+        'https://api.openf1.org/v1/sessions?date_start>='+formattedwindowbegin+'&'+'date_start<='+formattedwindowend)
+
+    print('https://api.openf1.org/v1/sessions?date_start>=' +
+          formattedwindowbegin+'&'+'date_start<='+formattedwindowend)
 
     data = json.loads(response.read().decode('utf-8'))
 
@@ -148,14 +196,67 @@ def getweather(date):
 
 
 def getalldata(driver_number, date):
+
+    results = {}
+
+    sessiondata = getsessiondata(date)
+
+    results['race_start'] = findracestart(str(sessiondata['session_key']))
+
+    date_format = "%Y-%m-%dT%H:%M:%S%z"
+    date_format_with_microseconds = "%Y-%m-%dT%H:%M:%S.%f%z"
+
+    def parse_datetime(date_str):
+        # List of possible formats
+        formats = [
+            "%Y-%m-%dT%H:%M:%S.%f%z",  # With microseconds and timezone
+            "%Y-%m-%dT%H:%M:%S%z",     # Without microseconds but with timezone
+            "%Y-%m-%dT%H:%M:%S.%f",    # With microseconds
+            "%Y-%m-%dT%H:%M:%S",       # Without microseconds or timezone
+        ]
+        for fmt in formats:
+            try:
+                return datetime.strptime(date_str, fmt)
+            except ValueError:
+                continue
+        raise ValueError(
+            f"Date string '{date_str}' does not match expected formats.")
+
+    try:
+        actual_start = parse_datetime(results['race_start'])
+    except ValueError:
+        actual_start = None  # Handle invalid case if necessary
+
+    try:
+        predicted_start = parse_datetime(sessiondata['date_start'])
+    except ValueError:
+        predicted_start = None  # Handle invalid case if necessary
+
+    try:
+        print(date)
+        datereal = parse_datetime(date)
+    except ValueError:
+        datereal = None  # Handle invalid case if necessary
+
+    if actual_start and predicted_start and datereal:
+        time_diff = actual_start - predicted_start
+        print(datereal)
+        datereal = datereal + time_diff
+        print(datereal)
+        print(time_diff)
+        # Format the final datetime without the timezone
+        # Trims milliseconds to match typical ISO 8601 format
+        date = datereal.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]
+
+    results['datetime'] = date
+
     cardata = getcardata(driver_number, date)
+    meetingdata = getmeetingdata(str(cardata['meeting_key']))
     driverdata = getdriverdata(driver_number)
     intervaldata = getintervaldata(driver_number, date)
     lapdata = getlapdata(driver_number, date)
-    meetingdata = getmeetingdata(str(cardata['meeting_key']))
     pitdata = getpitdata(driver_number, date)
     positiondata = getpositiondata(driver_number, date)
-    sessiondata = getsessiondata(str(cardata['session_key']))
     stintdata = getstintdata(driver_number, str(cardata['session_key']))
 
     weather = getweather(date)
@@ -167,14 +268,37 @@ def getalldata(driver_number, date):
     alldata = [cardata, driverdata, intervaldata, lapdata, meetingdata,
                pitdata, positiondata, sessiondata, stintdata, weather]
 
-    results = {}
-
     for data in alldata:
         results.update(data)
 
-    results['race_start'] = findracestart(str(cardata['session_key']))
-
     return results
+
+
+def poll_positions(date, race_start):
+    datewindowbegin = datetime.fromisoformat(race_start) - timedelta(hours=2)
+
+    formattedwindow = datewindowbegin.strftime('%Y-%m-%dT%H:%M:%S.%f')
+
+    response = urlopen(
+        'https://api.openf1.org/v1/position?&date>='+formattedwindow+'&date<='+date)
+    print('https://api.openf1.org/v1/position?&date>=' +
+          formattedwindow+'&date<='+date)
+    data = json.loads(response.read().decode('utf-8'))
+
+    positions = []
+    seen_positions = set()
+
+    for entry in reversed(data):
+        position = entry["position"]
+
+        if position not in seen_positions:
+            positions.append(
+                [entry['position'], driver_dict[int(entry['driver_number'])]])
+            seen_positions.add(position)
+
+    sorted_positions = sorted(positions, key=lambda x: x[0])
+
+    return sorted_positions
 
 
 """These are function prototypes that we will need
@@ -205,10 +329,6 @@ def getalldata(driver_number, date):
     def update_database_with_race_schedule(self):
 
         # Fetch race schedule and update the database.
-
-    def update_database_with_race_results(self, race_id):
-
-        # Fetch race results and update the database.
 
     def fetch_and_store_driver_stats(self, driver_id):
 
