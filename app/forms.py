@@ -6,6 +6,8 @@ from wtforms import StringField, PasswordField, SubmitField, BooleanField, Selec
 from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Length
 from app.models import User
 from flask_login import current_user
+from wtforms import DateField, SelectField, StringField
+
 
 #The below function allows users to create an account on the F1 app
 class RegistrationForm(FlaskForm):
@@ -90,3 +92,12 @@ class ResetPasswordForm(FlaskForm):
         EqualTo('password', message='Passwords must match.')
     ])
     submit = SubmitField('Reset Password')
+
+class RaceForm(FlaskForm):
+    race_date = DateField('Race Date', validators=[DataRequired()])
+    submit = SubmitField('Find Races', render_kw={'value': 'Find Races'})
+
+class GuessForm(FlaskForm):
+    strategy = SelectField('Strategy', choices=[], validators=[DataRequired()])
+    driver = SelectField('Driver', choices=[], coerce=int, validators=[DataRequired()])
+    submit = SubmitField('Submit Guess', render_kw={'value': 'Submit Guess'})
