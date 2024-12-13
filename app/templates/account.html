@@ -1,0 +1,155 @@
+<!-- app/templates/account.html -->
+
+{% extends 'base.html' %}
+
+{% block title %}Welcome - F1 Strategy Web App{% endblock %}
+
+{% block content %}
+<div class="home-user-background">
+    <!-- Welcome Message -->
+    <div class="jumbotron text-center">
+        <h1 class="display-4">Welcome, {{ current_user.username }}!</h1>
+        <p class="lead">Welcome to your account dashboard.</p>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="container mt-4">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Race Simulation Guessing Game -->
+    <div class="mb-5">
+        <h2>Race Simulation Guessing Game</h2>
+
+        <!-- Form to Enter Date and Find Races -->
+        <div class="col-md-4 mb-4">
+            <form action="{{ url_for('main_bp.account') }}" method="POST">
+                {{ race_form.hidden_tag() }}
+                <div class="form-group">
+                    {{ race_form.race_date.label(class="form-label") }}
+                    {{ race_form.race_date(class="form-control", id="raceDate", required=True) }}
+                </div>
+                {{ race_form.submit(class="btn btn-primary mt-2", id="submitRace") }}
+            </form>
+        </div>
+
+        {% if races_found %}
+        <div class="col-md-6 mb-4">
+            <h3>Race Details:</h3>
+            <p><strong>Location:</strong> {{ races_found[0]['circuit_details']['circuit_name'] }}</p>
+
+            <!-- Form to Make a Guess -->
+            <form action="{{ url_for('main_bp.account') }}" method="POST">
+                {{ guess_form.hidden_tag() }}
+                <div class="form-group mb-3">
+                    {{ guess_form.strategy.label(class="form-label") }}
+                    {{ guess_form.strategy(class="form-control", id="strategySelect", required=True) }}
+                </div>
+                <div class="form-group mb-3">
+                    {{ guess_form.driver.label(class="form-label") }}
+                    {{ guess_form.driver(class="form-control", id="driverSelect", required=True) }}
+                </div>
+                {{ guess_form.submit(class="btn btn-success", id="submitGuess") }}
+
+                <!-- Optional: Display form errors for debugging -->
+                {% if guess_form.errors %}
+                    <ul class="text-danger mt-2">
+                        {% for field, errors in guess_form.errors.items() %}
+                            {% for error in errors %}
+                                <li>{{ field }}: {{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </form>
+        </div>
+        {% endif %}
+
+        {% if timing_board %}
+        <!-- Simulation Results -->
+        <div class="bg-light p-4 rounded mt-4">
+            <h3>Simulation Result:</h3>
+            <p><strong>Driver:</strong> {{ driver_selected }}</p>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th scope="col">Position</th>
+                        <th scope="col">Driver</th>
+                        <th scope="col">Pit Stops</th>
+                        <th scope="col">Fastest Lap</th>
+                        <th scope="col">Total Race Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for car in timing_board %}
+                    <tr {% if car.driver_name == driver_selected %}class="table-primary"{% endif %}>
+                        <td>{{ car.position }}</td>
+                        <td>{{ car.driver_name }}</td>
+                        <td>{{ car.pit_stops }}</td>
+                        <td>{{ car.fastest_lap }}s</td>
+                        <td>{{ car.total_time }}s</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <h4>Closeness: {{ result }}%</h4>
+
+            {% if real_race_results %}
+            <h3>Real-Life Race Results:</h3>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th scope="col">Position</th>
+                        <th scope="col">Driver</th>
+                        <th scope="col">Race Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rr in real_race_results %}
+                    <tr>
+                        <td>{{ rr.position }}</td>
+                        <td>{{ rr.driver_name }}</td>
+                        <td>{{ rr.time }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p><em>Real-life race results are not available yet.</em></p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Placeholder for Upcoming Races -->
+    <div class="mb-5">
+        <h2>Upcoming Races</h2>
+        <ul class="list-group">
+            <li class="list-group-item">No upcoming races available at the moment.</li>
+        </ul>
+    </div>
+
+    <!-- Placeholder for Racer Statistics -->
+    <div class="mb-5">
+        <h2>Racer Statistics</h2>
+        <ul class="list-group">
+            <li class="list-group-item">Racer statistics will be available soon.</li>
+        </ul>
+    </div>
+
+    <!-- Placeholder for Achievement Badges -->
+    <div class="mb-5">
+        <h2>Your Achievement Badges</h2>
+        <p>Achievement badges will be displayed here once implemented.</p>
+    </div>
+</div>
+{% endblock %}
